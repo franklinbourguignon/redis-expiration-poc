@@ -18,6 +18,8 @@ import static com.expiration.redisexpirationpoc.mongo.model.Status.PENDING;
 @Service
 public class QrCodeDocumentService {
 
+    private static final String MONGO_PREFIX_KEY = "mongo:%s";
+
     @Autowired
     private QRCodeDocumentRepository qrCodeDocumentRepository;
 
@@ -32,22 +34,26 @@ public class QrCodeDocumentService {
 
         persistQRCode(qrCodeDocument);
 
-        redisService.createKeyWithExpirationTime(key, "", 10);
+        redisService.createKeyWithExpirationTime(String.format(MONGO_PREFIX_KEY,key), "", 10);
 
         log.info("PERSIST QRCODE [{}] IN MONGODB", key);
     }
 
     public void updateQRCodeStatus(String id) {
-        Optional<QrCodeDocument> qrCode = qrCodeDocumentRepository.findByIdAndStatus(id, PENDING.name());
+        String idWithoutPrefix = id.replace("mongo:","");
+        Optional<QrCodeDocument> qrCode = qrCodeDocumentRepository.findByIdAndStatus(idWithoutPrefix, PENDING.name());
 
-        qrCode.ifPresentOrElse((q) -> {
-            q.setStatus(EXPIRED.name());
-            q.setUpdatedAt(LocalDateTime.now());
-            qrCodeDocumentRepository.save(q);
-            log.info("QRCODE [{}] EXPIRED WITH SUCESS IN MONGODB", id);
-        }, () ->
-                log.info("QRCODE [{}] IS ALREADY EXPIRED IN MONGODB", id));
-
+        try {
+            qrCode.ifPresentOrElse((q) -> {
+                q.setStatus(EXPIRED.name());
+                q.setUpdatedAt(LocalDateTime.now());
+                qrCodeDocumentRepository.save(q);
+                log.info("QRCODE [{}] EXPIRED WITH SUCESS IN MONGODB", id);
+            }, () ->
+                    log.info("QRCODE [{}] IS ALREADY EXPIRED IN MONGODB", id));
+        }catch (Exception e){
+            log.info("QRCODE [{}] IS ALREADY EXPIRED IN MONGODB", id);
+        }
     }
 
     private void persistQRCode(QrCodeDocument qrCodeDocument) {

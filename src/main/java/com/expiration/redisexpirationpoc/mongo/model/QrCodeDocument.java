@@ -2,6 +2,7 @@ package com.expiration.redisexpirationpoc.mongo.model;
 
 import lombok.Data;
 import org.springframework.data.annotation.Id;
+import org.springframework.data.annotation.Version;
 import org.springframework.data.mongodb.core.mapping.Document;
 
 import java.io.Serializable;
@@ -16,5 +17,7 @@ public class QrCodeDocument implements Serializable {
     private String emv;
     private String status;
     private LocalDateTime updatedAt;
+    @Version
+    Long version;
 
 }
