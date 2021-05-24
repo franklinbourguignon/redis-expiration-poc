@@ -1,0 +1,16 @@
+version: '3'
+
+services:
+  redis:
+    container_name: qrcode_expiration_redis
+    image: redis
+    command: [ "--notify-keyspace-events", "Ex" ]
+    ports:
+      - 6379:6379
+    network_mode: host
+  mongo:
+    image: mongo
+    container_name: qrcode_expiration_mongodb
+    ports:
+      - "27018:27017"
+    network_mode: host
