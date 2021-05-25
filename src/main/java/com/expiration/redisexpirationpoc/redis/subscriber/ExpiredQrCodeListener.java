@@ -18,6 +18,8 @@ public class ExpiredQrCodeListener implements MessageListener {
     public void onMessage(Message message, byte[] bytes) {
         String key = new String(message.getBody());
         log.info("QRCODE EXPIRED: [{}]", key);
-        qrCodeDocumentService.updateQRCodeStatus(key);
+        if(!key.contains("finished")) {
+            qrCodeDocumentService.updateQRCodeStatus(key);
+        }
     }
 }

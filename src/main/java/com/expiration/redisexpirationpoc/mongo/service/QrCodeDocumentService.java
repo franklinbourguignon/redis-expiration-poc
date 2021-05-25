@@ -39,21 +39,30 @@ public class QrCodeDocumentService {
     }
 
     public void updateQRCodeStatus(String id) {
-        Optional<QrCodeDocument> qrCode = qrCodeDocumentRepository.findByIdAndStatus(id, PENDING);
 
-        try {
-            qrCode.ifPresentOrElse((q) -> {
-                q.setStatus(EXPIRED);
-                q.setUpdatedAt(LocalDateTime.now());
-                qrCodeDocumentRepository.save(q);
-                log.info("QRCODE [{}] EXPIRED WITH SUCESS IN MONGODB", id);
-            }, () ->
-                    log.info("QRCODE [{}] IS ALREADY EXPIRED IN MONGODB", id));
-        }catch (OptimisticLockingFailureException e){
-            log.info("QRCODE [{}] IS ALREADY EXPIRED IN MONGODB", id);
-        } catch (Exception e){
-            log.info("AN ERROR HAS OCCURRED WHEN UPDATE STATUS [{}] ", id);
+        final String keyFinal = "finished:".concat(id);
+
+        if(!redisService.keyExists(keyFinal)){
+            Optional<QrCodeDocument> qrCode = qrCodeDocumentRepository.findByIdAndStatus(id, PENDING);
+            try {
+                qrCode.ifPresentOrElse((q) -> {
+                    q.setStatus(EXPIRED);
+                    q.setUpdatedAt(LocalDateTime.now());
+                    qrCodeDocumentRepository.save(q);
+                    log.info("QRCODE [{}] EXPIRED WITH SUCESS IN MONGODB", id);
+                    redisService.createKeyWithExpirationTime(keyFinal, "", 60);
+                }, () ->
+                        log.info("QRCODE [{}] IS ALREADY EXPIRED IN MONGODB", id));
+            }catch (OptimisticLockingFailureException e){
+                log.info("QRCODE [{}] IS ALREADY EXPIRED IN MONGODB", id);
+            } catch (Exception e){
+                log.info("AN ERROR HAS OCCURRED WHEN UPDATE STATUS [{}] ", id);
+            }
+        } else {
+            log.info("QRCODE [{}] IS ALREADY EXPIRED IN REDIS", id);
         }
+
+
     }
 
     private void persistQRCode(QrCodeDocument qrCodeDocument) {

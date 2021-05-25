@@ -16,7 +16,7 @@ import org.springframework.data.redis.serializer.StringRedisSerializer;
 public class RedisConfiguration {
 
     @Autowired
-    private ExpiredQrCodeListener qrCodeListener;
+    private ExpiredQrCodeListener expiredQrCodeListener;
 
     @Bean
     JedisConnectionFactory jedisConnectionFactory() {
@@ -37,7 +37,7 @@ public class RedisConfiguration {
 
     @Bean
     MessageListenerAdapter messageListener() {
-        return new MessageListenerAdapter(qrCodeListener);
+        return new MessageListenerAdapter(expiredQrCodeListener);
     }
 
     @Bean

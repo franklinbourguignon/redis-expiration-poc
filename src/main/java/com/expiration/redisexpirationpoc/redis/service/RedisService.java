@@ -16,4 +16,8 @@ public class RedisService {
         redisTemplate.opsForValue().set(key, value);
         redisTemplate.expire(key, ttl, TimeUnit.SECONDS);
     }
+
+    public boolean keyExists(String key) {
+        return redisTemplate.hasKey(key);
+    }
 }
