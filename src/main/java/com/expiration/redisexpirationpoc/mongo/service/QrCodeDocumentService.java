@@ -6,6 +6,7 @@ import com.expiration.redisexpirationpoc.mongo.repository.QRCodeDocumentReposito
 import com.expiration.redisexpirationpoc.redis.service.RedisService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.dao.OptimisticLockingFailureException;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -18,8 +19,6 @@ import static com.expiration.redisexpirationpoc.mongo.model.Status.PENDING;
 @Service
 public class QrCodeDocumentService {
 
-    private static final String MONGO_PREFIX_KEY = "mongo:%s";
-
     @Autowired
     private QRCodeDocumentRepository qrCodeDocumentRepository;
 
@@ -29,30 +28,31 @@ public class QrCodeDocumentService {
     public void saveQrCode(QrCodeDocument qrCodeDocument) {
         final String key = qrCodeDocument.getId();
 
-        qrCodeDocument.setStatus(PENDING.name());
+        qrCodeDocument.setStatus(PENDING);
         qrCodeDocument.setUpdatedAt(LocalDateTime.now());
 
         persistQRCode(qrCodeDocument);
 
-        redisService.createKeyWithExpirationTime(String.format(MONGO_PREFIX_KEY,key), "", 10);
+        redisService.createKeyWithExpirationTime(key, "", 10);
 
         log.info("PERSIST QRCODE [{}] IN MONGODB", key);
     }
 
     public void updateQRCodeStatus(String id) {
-        String idWithoutPrefix = id.replace("mongo:","");
-        Optional<QrCodeDocument> qrCode = qrCodeDocumentRepository.findByIdAndStatus(idWithoutPrefix, PENDING.name());
+        Optional<QrCodeDocument> qrCode = qrCodeDocumentRepository.findByIdAndStatus(id, PENDING);
 
         try {
             qrCode.ifPresentOrElse((q) -> {
-                q.setStatus(EXPIRED.name());
+                q.setStatus(EXPIRED);
                 q.setUpdatedAt(LocalDateTime.now());
                 qrCodeDocumentRepository.save(q);
                 log.info("QRCODE [{}] EXPIRED WITH SUCESS IN MONGODB", id);
             }, () ->
                     log.info("QRCODE [{}] IS ALREADY EXPIRED IN MONGODB", id));
-        }catch (Exception e){
+        }catch (OptimisticLockingFailureException e){
             log.info("QRCODE [{}] IS ALREADY EXPIRED IN MONGODB", id);
+        } catch (Exception e){
+            log.info("AN ERROR HAS OCCURRED WHEN UPDATE STATUS [{}] ", id);
         }
     }
 
