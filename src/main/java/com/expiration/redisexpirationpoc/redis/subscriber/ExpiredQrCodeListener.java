@@ -7,6 +7,9 @@ import org.springframework.data.redis.connection.Message;
 import org.springframework.data.redis.connection.MessageListener;
 import org.springframework.stereotype.Component;
 
+import static com.expiration.redisexpirationpoc.redis.utils.KeysUtils.clearKeyPrefix;
+import static com.expiration.redisexpirationpoc.redis.utils.KeysUtils.isPendingKey;
+
 @Slf4j
 @Component
 public class ExpiredQrCodeListener implements MessageListener {
@@ -18,8 +21,8 @@ public class ExpiredQrCodeListener implements MessageListener {
     public void onMessage(Message message, byte[] bytes) {
         String key = new String(message.getBody());
         log.info("QRCODE EXPIRED: [{}]", key);
-        if(!key.contains("finished")) {
-            qrCodeDocumentService.updateQRCodeStatus(key);
+        if(isPendingKey(key)) {
+            qrCodeDocumentService.updateQRCodeStatus(clearKeyPrefix(key));
         }
     }
 }
